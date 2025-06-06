@@ -1,21 +1,16 @@
 const express = require("express");
-const app = express();
-const { Low, JSONFile } = require("lowdb");
+const low = require("lowdb");
+const FileSync = require("lowdb/adapters/FileSync");
 const { nanoid } = require("nanoid");
+const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 
-// Configurar LowDB
-const adapter = new JSONFile("db.json");
-const db = new Low(adapter);
+const adapter = new FileSync("db.json");
+const db = low(adapter);
 
-async function initDB() {
-  await db.read();
-  db.data ||= { links: [] };
-  await db.write();
-}
-initDB();
+db.defaults({ links: [] }).write();
 
 app.get("/", (req, res) => {
   res.send(`
@@ -30,14 +25,14 @@ app.get("/", (req, res) => {
   `);
 });
 
-app.post("/create", async (req, res) => {
+app.post("/create", (req, res) => {
   const { url, duration } = req.body;
-  await db.read();
 
   const id = nanoid(8);
   const expiresAt = Date.now() + parseInt(duration) * 60 * 60 * 1000;
-  db.data.links.push({ id, url, expiresAt });
-  await db.write();
+  db.get('links')
+    .push({ id, url, expiresAt })
+    .write();
 
   res.send(`
     <p>Tu enlace temporal (válido por ${duration}h):</p>
@@ -45,15 +40,12 @@ app.post("/create", async (req, res) => {
   `);
 });
 
-app.get("/link/:id", async (req, res) => {
-  await db.read();
-  const link = db.data.links.find((l) => l.id === req.params.id);
+app.get("/link/:id", (req, res) => {
+  const link = db.get('links').find({ id: req.params.id }).value();
   if (!link) return res.status(404).send("Enlace no encontrado.");
 
   if (Date.now() > link.expiresAt) {
-    // Borrar enlace expirado
-    db.data.links = db.data.links.filter((l) => l.id !== req.params.id);
-    await db.write();
+    db.get('links').remove({ id: req.params.id }).write();
     return res.send("<h3>Este enlace ha expirado.</h3>");
   }
 
