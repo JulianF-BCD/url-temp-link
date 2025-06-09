@@ -9,27 +9,26 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ruta al archivo de la base de datos
+// Asegúrate de que el archivo de base de datos existe
 const dbFile = path.join(__dirname, 'db.json');
-
-// Crear archivo vacío si no existe
 if (!fs.existsSync(dbFile)) {
-  fs.writeFileSync(dbFile, '', 'utf-8');
+  fs.writeFileSync(dbFile, JSON.stringify({ links: [] }, null, 2));
 }
 
 const adapter = new JSONFile(dbFile);
 const db = new Low(adapter);
 
-// Inicializar datos por defecto
+// Lee e inicializa la base de datos
 await db.read();
-db.data = db.data || { links: [] };
-await db.write();
+if (!db.data) {
+  db.data = { links: [] };
+  await db.write();
+}
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Página principal
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -55,7 +54,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Crear enlace temporal
 app.post('/create', async (req, res) => {
   const { url, duration } = req.body;
   if (!url || !duration) return res.status(400).send('Datos inválidos');
@@ -75,7 +73,6 @@ app.post('/create', async (req, res) => {
   `);
 });
 
-// Acceder al enlace
 app.get('/link/:id', async (req, res) => {
   await db.read();
   const link = db.data.links.find(l => l.id === req.params.id);
@@ -94,7 +91,6 @@ app.get('/link/:id', async (req, res) => {
   `);
 });
 
-// Redirigir sin mostrar la URL original
 app.post('/redirect/:id', async (req, res) => {
   await db.read();
   const link = db.data.links.find(l => l.id === req.params.id);
@@ -106,8 +102,7 @@ app.post('/redirect/:id', async (req, res) => {
   res.redirect(link.url);
 });
 
-// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor activo en puerto ${PORT}`);
+  console.log(`Servidor en marcha en puerto ${PORT}`);
 });
