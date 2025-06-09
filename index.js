@@ -72,11 +72,11 @@ const renderForm = () => `
   <body>
     <div class="container">
       <img src="https://bcdtravel.es/wp-content/uploads/2024/02/Identidad_BCDTravel.es_.svg" alt="Logo BCD Travel">
-      <h2>Crear enlace temporal</h2>
+      <h3>Crear enlace temporal</h3>
       <form method="POST" action="/create">
         <input name="url" placeholder="URL original" required /><br>
-        <input name="duration" type="number" value="48" min="1" max="168" placeholder="Duración (en horas)" /><br>
-        <button type="submit">Generar enlace</button>
+        <input name="duration" type="number" value min="0.5" max="168" placeholder="Duración (en horas)" /><br>
+        <button type="submit">Generar</button>
       </form>
     </div>
   </body>
