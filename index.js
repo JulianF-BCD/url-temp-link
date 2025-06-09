@@ -8,11 +8,14 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ruta del archivo JSON que actúa como base de datos
 const file = path.join(__dirname, 'db.json');
 const adapter = new JSONFile(file);
 const db = new Low(adapter);
 
 await db.read();
+
+// Inicializar db.data si está vacía o no existe
 db.data ||= { links: [] };
 await db.write();
 
@@ -20,6 +23,7 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Página principal con formulario para crear enlace temporal
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -37,32 +41,16 @@ app.get('/', (req, res) => {
   `);
 });
 
+// Endpoint para crear enlace temporal
 app.post('/create', async (req, res) => {
   const { url, duration } = req.body;
   const id = nanoid();
   const expiresAt = Date.now() + parseInt(duration) * 3600000;
+
+  // Leer base de datos para asegurar datos actuales
+  await db.read();
   db.data.links.push({ id, url, expiresAt });
   await db.write();
 
   res.send(`
-    <html><body>
-      <p>Tu enlace temporal (válido por ${duration}h):</p>
-      <a href="/link/${id}" target="_blank">${req.headers.host}/link/${id}</a><br><br>
-      <a href="/">← Volver</a>
-    </body></html>
-  `);
-});
-
-app.get('/link/:id', async (req, res) => {
-  await db.read();
-  const link = db.data.links.find(l => l.id === req.params.id);
-  if (!link || Date.now() > link.expiresAt) {
-    return res.status(404).send('Enlace no encontrado o expirado');
-  }
-  res.redirect(link.url);
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor funcionando en puerto ${PORT}`);
-});
+    <html>
