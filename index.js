@@ -9,7 +9,7 @@ const port = process.env.PORT || 3000;
 
 const file = path.join(__dirname, 'db.json');
 const adapter = new JSONFile(file);
-const db = new Low(adapter);
+const db = new Low(adapter, { links: [] });
 
 app.use(express.urlencoded({ extended: true }));
 
