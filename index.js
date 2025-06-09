@@ -1,56 +1,65 @@
-import express from 'express';
-import { nanoid } from 'nanoid';
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Ruta del archivo JSON que actúa como base de datos
-const file = path.join(__dirname, 'db.json');
-const adapter = new JSONFile(file);
-const db = new Low(adapter);
-
-await db.read();
-
-// Inicializar db.data si está vacía o no existe
-db.data ||= { links: [] };
-await db.write();
-
+const express = require("express");
+const low = require("lowdb");
+const FileSync = require("lowdb/adapters/FileSync");
+const { nanoid } = require("nanoid");
+const axios = require("axios");
 const app = express();
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-// Página principal con formulario para crear enlace temporal
-app.get('/', (req, res) => {
+app.use(express.urlencoded({ extended: true }));
+
+const adapter = new FileSync("db.json");
+const db = low(adapter);
+
+db.defaults({ links: [] }).write();
+
+app.get("/", (req, res) => {
   res.send(`
-    <html>
-      <body>
-        <h1>Crear enlace temporal</h1>
-        <form method="POST" action="/create">
-          <label>URL original:</label><br>
-          <input type="url" name="url" required><br>
-          <label>Duración (en horas):</label><br>
-          <input type="number" name="duration" required><br>
-          <button type="submit">Generar enlace</button>
-        </form>
-      </body>
-    </html>
+    <h2>Crear enlace temporal</h2>
+    <form method="POST" action="/create">
+      <label>URL original:</label><br>
+      <input name="url" required style="width:300px"><br><br>
+      <label>Duración (en horas):</label><br>
+      <input name="duration" type="number" value="48" min="1" max="168"><br><br>
+      <button type="submit">Generar enlace</button>
+    </form>
   `);
 });
 
-// Endpoint para crear enlace temporal
-app.post('/create', async (req, res) => {
+app.post("/create", (req, res) => {
   const { url, duration } = req.body;
-  const id = nanoid();
-  const expiresAt = Date.now() + parseInt(duration) * 3600000;
 
-  // Leer base de datos para asegurar datos actuales
-  await db.read();
-  db.data.links.push({ id, url, expiresAt });
-  await db.write();
+  const id = nanoid(8);
+  const expiresAt = Date.now() + parseInt(duration) * 60 * 60 * 1000;
+  db.get('links')
+    .push({ id, url, expiresAt })
+    .write();
 
   res.send(`
-    <html>
+    <p>Tu enlace temporal (válido por ${duration}h):</p>
+    <a href="/link/${id}">${req.headers.host}/link/${id}</a>
+  `);
+});
+
+app.get("/link/:id", async (req, res) => {
+  const link = db.get('links').find({ id: req.params.id }).value();
+  if (!link) return res.status(404).send("Enlace no encontrado.");
+
+  if (Date.now() > link.expiresAt) {
+    db.get('links').remove({ id: req.params.id }).write();
+    return res.send("<h3>Este enlace ha expirado.</h3>");
+  }
+
+  try {
+    const response = await axios.get(link.url, { responseType: "arraybuffer" });
+    const contentType = response.headers["content-type"];
+    res.set("Content-Type", contentType);
+    res.send(response.data);
+  } catch (err) {
+    res.status(500).send("Error al cargar el contenido.");
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
