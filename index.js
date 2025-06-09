@@ -6,22 +6,23 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
-// Inicialización
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Ruta al archivo de la base de datos
 const dbFile = path.join(__dirname, 'db.json');
 
-// Si no existe, crea db.json con estructura básica
+// Crear archivo vacío si no existe
 if (!fs.existsSync(dbFile)) {
-  fs.writeFileSync(dbFile, JSON.stringify({ links: [] }, null, 2));
+  fs.writeFileSync(dbFile, '', 'utf-8');
 }
 
 const adapter = new JSONFile(dbFile);
 const db = new Low(adapter);
-await db.read();
 
-// Asegura que existe la estructura básica
-db.data ||= { links: [] };
+// Inicializar datos por defecto
+await db.read();
+db.data = db.data || { links: [] };
 await db.write();
 
 const app = express();
@@ -31,23 +32,22 @@ app.use(express.json());
 // Página principal
 app.get('/', (req, res) => {
   res.send(`
-    <html lang="es">
+    <html>
       <head>
         <meta charset="UTF-8" />
-        <title>Enlace temporal</title>
+        <title>Generador de Enlaces Temporales</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 2rem; background: #f2f2f2; color: #333; }
-          form { margin-top: 1rem; }
+          body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
           input, button { padding: 0.5rem; margin-top: 0.5rem; width: 100%; }
         </style>
       </head>
       <body>
         <h1>Crear enlace temporal</h1>
         <form method="POST" action="/create">
-          <label>URL original:</label>
-          <input type="url" name="url" required />
-          <label>Duración (en horas):</label>
-          <input type="number" name="duration" min="1" required />
+          <label>URL original:</label><br>
+          <input type="url" name="url" required><br>
+          <label>Duración (en horas):</label><br>
+          <input type="number" name="duration" min="1" required><br>
           <button type="submit">Generar enlace</button>
         </form>
       </body>
@@ -58,7 +58,7 @@ app.get('/', (req, res) => {
 // Crear enlace temporal
 app.post('/create', async (req, res) => {
   const { url, duration } = req.body;
-  if (!url || !duration) return res.status(400).send('Faltan datos');
+  if (!url || !duration) return res.status(400).send('Datos inválidos');
 
   const id = nanoid(8);
   const expiresAt = Date.now() + parseInt(duration) * 3600000;
@@ -75,7 +75,7 @@ app.post('/create', async (req, res) => {
   `);
 });
 
-// Acceso al enlace
+// Acceder al enlace
 app.get('/link/:id', async (req, res) => {
   await db.read();
   const link = db.data.links.find(l => l.id === req.params.id);
@@ -94,7 +94,7 @@ app.get('/link/:id', async (req, res) => {
   `);
 });
 
-// Redirección
+// Redirigir sin mostrar la URL original
 app.post('/redirect/:id', async (req, res) => {
   await db.read();
   const link = db.data.links.find(l => l.id === req.params.id);
@@ -106,8 +106,8 @@ app.post('/redirect/:id', async (req, res) => {
   res.redirect(link.url);
 });
 
-// Arranque
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor iniciado en puerto ${PORT}`);
+  console.log(`Servidor activo en puerto ${PORT}`);
 });
