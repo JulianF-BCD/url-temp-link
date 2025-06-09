@@ -98,23 +98,33 @@ app.get('/', (req, res) => {
 
 // Crear nuevo enlace temporal
 app.post('/create', async (req, res) => {
-  const { url, duration } = req.body;
-  const id = nanoid(8);
-  const expiresAt = Date.now() + parseInt(duration) * 60 * 60 * 1000;
+  try {
+    const { url, duration } = req.body;
 
-  db.data.links.push({ id, url, expiresAt });
-  await db.write();
+    if (!url || !duration) {
+      return res.status(400).send('URL y duración son requeridas.');
+    }
 
-  res.send(`
-    <html>
-      <body style="font-family:sans-serif;padding:2rem;">
-        <h2>Tu enlace temporal (válido por ${duration}h):</h2>
-        <a href="/link/${id}" target="_blank">${req.headers.host}/link/${id}</a>
-        <br><br>
-        <a href="/">← Volver</a>
-      </body>
-    </html>
-  `);
+    const id = nanoid(8);
+    const expiresAt = Date.now() + parseInt(duration) * 60 * 60 * 1000;
+
+    db.data.links.push({ id, url, expiresAt });
+    await db.write();
+
+    res.send(`
+      <html>
+        <body style="font-family:sans-serif;padding:2rem;">
+          <h2>Tu enlace temporal (válido por ${duration}h):</h2>
+          <a href="/link/${id}" target="_blank">${req.headers.host}/link/${id}</a>
+          <br><br>
+          <a href="/">← Volver</a>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('❌ Error en /create:', err); // Esto lo verás en los logs de Render
+    res.status(500).send('Error interno al generar enlace.');
+  }
 });
 
 // Acceder a un enlace temporal
