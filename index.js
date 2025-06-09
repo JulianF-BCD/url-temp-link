@@ -2,6 +2,7 @@ const express = require("express");
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
 const { nanoid } = require("nanoid");
+const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -40,7 +41,7 @@ app.post("/create", (req, res) => {
   `);
 });
 
-app.get("/link/:id", (req, res) => {
+app.get("/link/:id", async (req, res) => {
   const link = db.get('links').find({ id: req.params.id }).value();
   if (!link) return res.status(404).send("Enlace no encontrado.");
 
@@ -49,7 +50,14 @@ app.get("/link/:id", (req, res) => {
     return res.send("<h3>Este enlace ha expirado.</h3>");
   }
 
-  res.redirect(link.url);
+  try {
+    const response = await axios.get(link.url, { responseType: "arraybuffer" });
+    const contentType = response.headers["content-type"];
+    res.set("Content-Type", contentType);
+    res.send(response.data);
+  } catch (err) {
+    res.status(500).send("Error al cargar el contenido.");
+  }
 });
 
 app.listen(PORT, () => {
