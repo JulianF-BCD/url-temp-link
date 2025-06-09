@@ -4,14 +4,25 @@ import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-// Inicialización de rutas y base de datos
+// Inicialización
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbFile = path.join(__dirname, 'db.json');
+
+// Si no existe, crea db.json con estructura básica
+if (!fs.existsSync(dbFile)) {
+  fs.writeFileSync(dbFile, JSON.stringify({ links: [] }, null, 2));
+}
+
 const adapter = new JSONFile(dbFile);
-const db = new Low(adapter, { links: [] });
+const db = new Low(adapter);
 await db.read();
+
+// Asegura que existe la estructura básica
+db.data ||= { links: [] };
+await db.write();
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -44,36 +55,30 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Crear nuevo enlace temporal
+// Crear enlace temporal
 app.post('/create', async (req, res) => {
-  try {
-    const { url, duration } = req.body;
-    if (!url || !duration) return res.status(400).send('Faltan datos');
+  const { url, duration } = req.body;
+  if (!url || !duration) return res.status(400).send('Faltan datos');
 
-    const id = nanoid(8);
-    const expiresAt = Date.now() + parseInt(duration) * 3600000;
+  const id = nanoid(8);
+  const expiresAt = Date.now() + parseInt(duration) * 3600000;
 
-    db.data.links.push({ id, url, expiresAt });
-    await db.write();
+  db.data.links.push({ id, url, expiresAt });
+  await db.write();
 
-    res.send(`
-      <html><body>
-        <p>Tu enlace temporal (válido por ${duration}h):</p>
-        <a href="/link/${id}" target="_blank">${req.headers.host}/link/${id}</a><br><br>
-        <a href="/">← Volver</a>
-      </body></html>
-    `);
-  } catch (err) {
-    console.error('❌ Error creando el enlace:', err);
-    res.status(500).send('Error interno al crear el enlace.');
-  }
+  res.send(`
+    <html><body>
+      <p>Tu enlace temporal (válido por ${duration}h):</p>
+      <a href="/link/${id}" target="_blank">${req.headers.host}/link/${id}</a><br><br>
+      <a href="/">← Volver</a>
+    </body></html>
+  `);
 });
 
-// Acceso a enlace temporal
+// Acceso al enlace
 app.get('/link/:id', async (req, res) => {
-  const { id } = req.params;
   await db.read();
-  const link = db.data.links.find(l => l.id === id);
+  const link = db.data.links.find(l => l.id === req.params.id);
 
   if (!link || Date.now() > link.expiresAt) {
     return res.status(404).send('<h2>❌ Enlace no encontrado o expirado</h2>');
@@ -82,19 +87,17 @@ app.get('/link/:id', async (req, res) => {
   res.send(`
     <html><body>
       <h2>Enlace válido</h2>
-      <p>Este recurso está disponible temporalmente. Puedes accederlo desde aquí:</p>
-      <form method="POST" action="/redirect/${id}">
+      <form method="POST" action="/redirect/${link.id}">
         <button>Acceder al recurso</button>
       </form>
     </body></html>
   `);
 });
 
-// Redirección real (oculta la URL original hasta el final)
+// Redirección
 app.post('/redirect/:id', async (req, res) => {
-  const { id } = req.params;
   await db.read();
-  const link = db.data.links.find(l => l.id === id);
+  const link = db.data.links.find(l => l.id === req.params.id);
 
   if (!link || Date.now() > link.expiresAt) {
     return res.status(404).send('<h2>❌ Enlace no encontrado o expirado</h2>');
@@ -103,8 +106,8 @@ app.post('/redirect/:id', async (req, res) => {
   res.redirect(link.url);
 });
 
-// Arranque del servidor
+// Arranque
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Servidor en marcha en http://localhost:${PORT}`);
+  console.log(`Servidor iniciado en puerto ${PORT}`);
 });
