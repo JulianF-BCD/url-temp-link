@@ -15,14 +15,78 @@ db.defaults({ links: [] }).write();
 
 app.get("/", (req, res) => {
   res.send(`
-    <h2>Crear enlace temporal</h2>
+    res.send(`
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #F2F4F6;
+    }
+    .container {
+      max-width: 500px;
+      margin: 60px auto;
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #004689;
+      margin-bottom: 24px;
+      font-size: 24px;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #333333;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 20px;
+      border: 1px solid #CCCCCC;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #004689;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color .2s ease;
+    }
+    button:hover {
+      background-color: #003366;
+    }
+    a {
+      color: #004689;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Enlace temporal BCD Travel</h1>
     <form method="POST" action="/create">
-      <label>URL original:</label><br>
-      <input name="url" required style="width:300px"><br><br>
-      <label>Duración (en horas):</label><br>
-      <input name="duration" type="number" value="48" min="1" max="168"><br><br>
+      <label>URL original</label>
+      <input name="url" placeholder="https://..." required>
+      <label>Duración (horas)</label>
+      <input name="duration" type="number" min="1" max="168" value="48" required>
       <button type="submit">Generar enlace</button>
     </form>
+  </div>
+</body>
+</html>
+`);
+
   `);
 });
 
