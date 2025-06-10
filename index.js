@@ -94,23 +94,13 @@ app.post("/create", (req, res) => {
 
   db.get("links").push({ id, url, expiresAt }).write();
 
-res.send(`
-  <head>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-  </head>
-  <body style="background-color:#F1F4F6; font-family:'Inter', sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0;">
-    <div style="text-align:center; background:white; padding:40px; border-radius:16px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
-      <h2 style="color:#141B4D; font-weight:300; font-size:24px; margin-bottom:20px;">Tu enlace temporal</h2>
-      <p style="margin-bottom:10px;">Válido por <strong>${duration}h</strong></p>
-      <a href="/link/${id}" style="display:inline-block; padding:10px 20px; background-color:#141B4D; color:white; text-decoration:none; border-radius:8px; transition:0.3s;">
-        ${req.headers.host}/link/${id}
-      </a>
-      <br><br>
-      <a href="/" style="color:#FF6720; font-size:14px; text-decoration:underline;">Crear otro enlace</a>
-    </div>
-  </body>
-`);
-  
+  res.send(`
+    <p>Tu enlace temporal (válido por ${duration}h):</p>
+    <a href="/link/${id}">${req.headers.host}/link/${id}</a>
+    <br><br><a href="/">Volver</a>
+  `);
+});
+
 app.get("/link/:id", async (req, res) => {
   const link = db.get("links").find({ id: req.params.id }).value();
   if (!link) return res.status(404).send("Enlace no encontrado.");
