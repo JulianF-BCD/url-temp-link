@@ -20,9 +20,7 @@ const renderForm = () => `
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><h2 style="color:#141B4D; font-family:'Inter', sans-serif; font-weight:300; font-size:21px; margin-bottom:20px;">
-  Crear enlace temporal
-</h2>Crear enlace temporal</title>
+    <title>BCD Travel - Enlace temporal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
       body {
@@ -74,7 +72,7 @@ const renderForm = () => `
   <body>
     <div class="container">
       <img src="https://bcdtravel.es/wp-content/uploads/2024/02/Identidad_BCDTravel.es_.svg" alt="Logo BCD Travel">
-      <h3>Crear enlace temporal</h3>
+      <h4>Crear enlace temporal</h4>
       <form method="POST" action="/create">
         <input name="url" placeholder="URL original" required /><br>
         <input name="duration" type="number" value=48horas min="1" max="168" placeholder="Duración (en horas)" /><br>
