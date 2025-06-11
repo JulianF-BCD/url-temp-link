@@ -3,11 +3,11 @@ name: Keep app awake
 on:
   schedule:
     - cron: '*/14 * * * *'  # Cada 14 minutos
-  workflow_dispatch:        # 👈 Esto permite lanzarlo manualmente
+  workflow_dispatch:        # Permite ejecutar manualmente desde GitHub
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Hacer ping a la app
-        run: curl -s https://url-temp-link.onrender.com/ > /dev/null
+      - name: Realistic ping to keep Render awake
+        run: curl -L --max-time 10 https://url-temp-link.onrender.com/
